@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Browse · Crypto Tracker</title>
+<meta name="theme-color" content="#257de0">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="nav"><div class="nav-inner">
+  <a class="brand" href="./"><img src="icons/icon-192.png" alt="">Crypto Tracker</a>
+  <nav class="nav-links" aria-label="Pages">
+    <a href="./">Today</a>
+    <a href="browse.html" aria-current="page">Browse</a>
+    <a href="trends.html">Trends</a>
+  </nav>
+  <span class="nav-status"></span>
+</div></header>
+
+<main>
+  <div class="offline-note">You are offline. Showing the last data this device loaded.</div>
+  <h1>Browse</h1>
+  <p class="sub" id="lead">Loading…</p>
+
+  <section class="card">
+    <div class="controls">
+      <label>Search names
+        <input type="search" id="q" placeholder="e.g. bitcoin" autocomplete="off">
+      </label>
+      <label>Source
+        <select id="f-source"><option value="">All sources</option></select>
+      </label>
+      <label>Category
+        <select id="f-category"><option value="">All categories</option></select>
+      </label>
+      <label>Sort by
+        <select id="sort-col"></select>
+      </label>
+      <label>Order
+        <select id="sort-dir"><option value="desc">High to low</option><option value="asc">Low to high</option></select>
+      </label>
+      <label class="inline"><input type="checkbox" id="starred-only"> Shortlist only (<span id="star-count">0</span>)</label>
+    </div>
+    <p class="muted" id="count" style="margin:0 0 .5rem"></p>
+    <div class="table-wrap"><table class="nowrap">
+      <thead><tr id="head"></tr></thead>
+      <tbody id="body"></tbody>
+    </table></div>
+  </section>
+</main>
+<footer>Star an item to add it to your shortlist. The shortlist is saved in this browser.</footer>
+
+<script src="analysis.js"></script>
+<script src="common.js"></script>
+<script>
+var STAR_KEY = "crypto-tracker:shortlist";
+function loadStars() {
+  try { return new Set(JSON.parse(localStorage.getItem(STAR_KEY) || "[]")); } catch (e) { return new Set(); }
+}
+function saveStars(s) { localStorage.setItem(STAR_KEY, JSON.stringify(Array.from(s).sort())); }
+
+var stars = loadStars(), items = [], state = { col: "market_cap_usd", dir: "desc" };
+
+function render() {
+  var q = document.getElementById("q").value.trim().toLowerCase();
+  var src = document.getElementById("f-source").value, cat = document.getElementById("f-category").value;
+  var only = document.getElementById("starred-only").checked;
+  var shown = items.filter(function (r) {
+    return (!q || r.item.toLowerCase().indexOf(q) >= 0) && (!src || r.source === src) &&
+           (!cat || r.category === cat) && (!only || stars.has(r.item_id));
+  });
+  var col = state.col, sign = state.dir === "asc" ? 1 : -1;
+  shown.sort(function (a, b) {
+    var x = a[col], y = b[col];
+    if (x === null && y === null) return cmp(a.item_id, b.item_id);
+    if (x === null) return 1;     // empty values always last
+    if (y === null) return -1;
+    return (x - y) * sign || cmp(a.item_id, b.item_id);
+  });
+  document.getElementById("count").textContent = "Showing " + shown.length + " of " + items.length + " items, sorted by " +
+    COLUMN_LABELS[col].toLowerCase() + " (" + (state.dir === "asc" ? "low to high" : "high to low") + "). Empty values sort last.";
+  document.getElementById("star-count").textContent = stars.size;
+  document.getElementById("head").innerHTML = "<th>★</th><th>Item</th><th>Source</th><th>Category</th>" +
+    NUMERIC.map(function (c) {
+      var arrow = c === state.col ? (state.dir === "asc" ? " ▲" : " ▼") : "";
+      return "<th class='num' aria-sort='" + (c === state.col ? (state.dir === "asc" ? "ascending" : "descending") : "none") +
+        "'><button class='sort' data-col='" + c + "'>" + esc(COLUMN_LABELS[c]) + arrow + "</button></th>";
+    }).join("");
+  document.getElementById("body").innerHTML = shown.length ? shown.map(function (r) {
+    var on = stars.has(r.item_id);
+    return "<tr><td><button class='star' data-id='" + esc(r.item_id) + "' aria-pressed='" + on + "' aria-label='" +
+      (on ? "Remove " : "Add ") + esc(r.item) + (on ? " from" : " to") + " shortlist'>" + (on ? "★" : "☆") + "</button></td>" +
+      "<td>" + esc(r.item) + " <span class='tag'>" + esc(r.symbol) + "</span></td><td>" + esc(r.source) + "</td><td>" + esc(r.category) + "</td>" +
+      NUMERIC.map(function (c) {
+        return "<td class='num " + (c === "change_24h_pct" ? signClass(r[c]) : "") + "'>" + fmtValue(c, r[c]) + "</td>";
+      }).join("") + "</tr>";
+  }).join("") : "<tr><td colspan='" + (4 + NUMERIC.length) + "' class='empty'>No items match.</td></tr>";
+}
+
+loadData().then(function (d) {
+  var dates = uniqueDates(d.rows), latest = dates[dates.length - 1];
+  items = rowsOn(d.rows, latest);
+  document.getElementById("lead").textContent = "Latest values for all " + items.length + " items from the run on " + latest + ".";
+  var opts = function (key) {
+    var s = {}; items.forEach(function (r) { s[r[key]] = true; });
+    return Object.keys(s).sort().map(function (v) { return "<option>" + esc(v) + "</option>"; }).join("");
+  };
+  document.getElementById("f-source").insertAdjacentHTML("beforeend", opts("source"));
+  document.getElementById("f-category").insertAdjacentHTML("beforeend", opts("category"));
+  document.getElementById("sort-col").innerHTML = NUMERIC.map(function (c) {
+    return "<option value='" + c + "'" + (c === state.col ? " selected" : "") + ">" + esc(COLUMN_LABELS[c]) + "</option>";
+  }).join("");
+  render();
+}).catch(showLoadError);
+
+["q", "f-source", "f-category", "starred-only"].forEach(function (id) {
+  document.getElementById(id).addEventListener("input", render);
+});
+document.getElementById("sort-col").addEventListener("change", function (e) { state.col = e.target.value; render(); });
+document.getElementById("sort-dir").addEventListener("change", function (e) { state.dir = e.target.value; render(); });
+document.addEventListener("click", function (e) {
+  var b = e.target.closest("button.sort");
+  if (b) {
+    var c = b.getAttribute("data-col");
+    state.dir = state.col === c && state.dir === "desc" ? "asc" : "desc";
+    state.col = c;
+    document.getElementById("sort-col").value = c;
+    document.getElementById("sort-dir").value = state.dir;
+    render();
+    return;
+  }
+  var s = e.target.closest("button.star");
+  if (s) {
+    var id = s.getAttribute("data-id");
+    if (stars.has(id)) stars.delete(id); else stars.add(id);
+    saveStars(stars);
+    render();
+  }
+});
+</script>
+</body>
+</html>

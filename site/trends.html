@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trends · Crypto Tracker</title>
+<meta name="theme-color" content="#257de0">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="nav"><div class="nav-inner">
+  <a class="brand" href="./"><img src="icons/icon-192.png" alt="">Crypto Tracker</a>
+  <nav class="nav-links" aria-label="Pages">
+    <a href="./">Today</a>
+    <a href="browse.html">Browse</a>
+    <a href="trends.html" aria-current="page">Trends</a>
+  </nav>
+  <span class="nav-status"></span>
+</div></header>
+
+<main>
+  <div class="offline-note">You are offline. Showing the last data this device loaded.</div>
+  <h1>Trends</h1>
+  <p class="sub" id="lead">Loading…</p>
+
+  <section class="card">
+    <h2>Every value over the days</h2>
+    <div class="controls">
+      <label>Value
+        <select id="metric"></select>
+      </label>
+      <label class="inline"><input type="checkbox" id="indexed"> Index to 100 on each item's first day</label>
+      <button type="button" id="clear" class="tag" style="cursor:pointer;padding:.3rem .6rem">Clear selection</button>
+    </div>
+    <div class="grid-2" style="grid-template-columns: 2fr 1fr; align-items:start">
+      <div>
+        <div class="legend" id="legend"></div>
+        <div id="history-chart"></div>
+      </div>
+      <div>
+        <p class="muted" style="margin:0 0 .35rem;font-size:.85rem">Pick up to 8 items to show (<span id="picked">0</span> picked).</p>
+        <div class="picker" id="picker"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card finding" id="f1"></section>
+  <section class="card finding" id="f2"></section>
+  <section class="card finding" id="f3"></section>
+  <section class="card finding" id="f4"></section>
+  <section class="card finding" id="f5"></section>
+</main>
+<footer>Every number on this page is computed in your browser from data/history.csv, so the page changes as the history grows.</footer>
+
+<script src="analysis.js"></script>
+<script src="common.js"></script>
+<script>
+var ROWS = [], DATES = [], ITEMS = [], MAX_PICK = 8;
+var picked = [];         // item_ids in the order they were picked
+var slotOf = {};         // item_id -> color slot; a color stays with its item
+
+function pick(id, on) {
+  if (on && picked.indexOf(id) < 0 && picked.length < MAX_PICK) {
+    var used = picked.map(function (p) { return slotOf[p]; });
+    var slot = 0; while (used.indexOf(slot) >= 0) slot++;
+    slotOf[id] = slot; picked.push(id);
+  } else if (!on) {
+    picked = picked.filter(function (p) { return p !== id; }); delete slotOf[id];
+  }
+}
+
+function drawHistory() {
+  var col = document.getElementById("metric").value, indexed = document.getElementById("indexed").checked;
+  var series = picked.map(function (id) {
+    var byDate = {}, name = id;
+    ROWS.forEach(function (r) { if (r.item_id === id) { byDate[r.date] = r[col]; name = r.item; } });
+    var base = null;
+    DATES.forEach(function (d) { if (base === null && byDate[d] !== undefined && byDate[d] !== null) base = byDate[d]; });
+    return { name: name, color: seriesColor(slotOf[id]), points: DATES.map(function (d) {
+      var v = byDate[d] === undefined ? null : byDate[d];
+      if (indexed && v !== null) v = base ? v / base * 100 : null;
+      return { x: d, y: v };
+    }) };
+  });
+  var fmt = indexed ? function (v) { return v.toFixed(2); } : function (v) { return fmtValue(col, v); };
+  document.getElementById("legend").innerHTML = series.map(function (s) {
+    return "<span><span class='sw' style='background:" + s.color + "'></span>" + esc(s.name) + "</span>";
+  }).join("") || "<span>Pick items on the right.</span>";
+  document.getElementById("picked").textContent = picked.length;
+  lineChart(document.getElementById("history-chart"), {
+    xs: DATES, series: series, format: fmt,
+    label: COLUMN_LABELS[col] + (indexed ? " indexed to 100" : "") + " over time",
+  });
+  document.querySelectorAll("#picker input").forEach(function (cb) {
+    cb.checked = picked.indexOf(cb.value) >= 0;
+    cb.disabled = !cb.checked && picked.length >= MAX_PICK;
+  });
+}
+
+function section(id, heading, paragraphs, chartFn, tableHead, tableRows) {
+  var s = document.getElementById(id);
+  s.innerHTML = "<h2>" + esc(heading) + "</h2>" + paragraphs.map(function (p) { return "<p>" + p + "</p>"; }).join("") +
+    "<div class='fchart'></div>" +
+    (tableRows && tableRows.length ? "<details><summary>Show the numbers as a table</summary><div class='table-wrap'><table><thead><tr>" +
+      tableHead.map(function (h, i) { return "<th" + (i ? " class='num'" : "") + ">" + esc(h) + "</th>"; }).join("") +
+      "</tr></thead><tbody>" + tableRows.map(function (r) {
+        return "<tr>" + r.map(function (c, i) { return "<td" + (i ? " class='num'" : "") + ">" + esc(c) + "</td>"; }).join("") + "</tr>";
+      }).join("") + "</tbody></table></div></details>" : "");
+  if (chartFn) chartFn(s.querySelector(".fchart"));
+  else s.querySelector(".fchart").innerHTML = "<p class='empty'>The chart appears once the history has enough days.</p>";
+}
+
+function findings() {
+  var b = function (s) { return "<b>" + esc(s) + "</b>"; };
+
+  // 1. risers and fallers since the first run
+  var f1 = sinceFirstRun(ROWS);
+  if (f1.coins.length) {
+    var hi = f1.coins[0], lo = f1.coins[f1.coins.length - 1];
+    var ups = f1.coins.filter(function (c) { return c.change_pct > 0; }).length;
+    section("f1", hi.item + " rose the most since the first run" + (lo.change_pct < 0 ? ", " + lo.item + " fell the most" : ""),
+      ["Between " + b(f1.first_date) + " and " + b(f1.last_date) + ", " + b(hi.item) + " went from " + b(fmtUSD(hi.first)) + " to " +
+        b(fmtUSD(hi.last)) + " (" + b(fmtPct(hi.change_pct)) + "), the largest gain of the " + f1.coins.length + " CoinGecko coins. " +
+        b(lo.item) + " had the weakest result, from " + b(fmtUSD(lo.first)) + " to " + b(fmtUSD(lo.last)) + " (" + b(fmtPct(lo.change_pct)) + "). " +
+        b(String(ups)) + " of " + f1.coins.length + " coins are higher than on their first day.",
+       "<span class='muted'>How it is computed: for each CoinGecko row in the history file, the change is (price_usd on the coin's latest date − price_usd on its first date) ÷ price_usd on its first date × 100. Kraken rows are left out so each coin counts once.</span>"],
+      function (el) { barChart(el, { label: "Price change since the first run", format: function (v) { return fmtPct(v); },
+        items: f1.coins.map(function (c) { return { label: c.item, value: c.change_pct,
+          tip: "<div class='t-head'>" + esc(c.item) + "</div>" + c.first_date + ": " + fmtUSD(c.first) + "<br>" + c.last_date + ": " + fmtUSD(c.last) + "<br><b>" + fmtPct(c.change_pct) + "</b>" }; }) }); },
+      ["Coin", "First date", "First price", "Latest date", "Latest price", "Change"],
+      f1.coins.map(function (c) { return [c.item, c.first_date, fmtUSD(c.first), c.last_date, fmtUSD(c.last), fmtPct(c.change_pct)]; }));
+  } else {
+    section("f1", "Gains and losses since the first run need a second day of history",
+      ["The history file has " + b(String(f1.days)) + " day so far (" + esc(f1.first_date || "none") + "). Once a second day is added, this section shows which coin rose and which fell the most since the first run, computed as (latest price_usd − first price_usd) ÷ first price_usd × 100 for each CoinGecko coin."]);
+  }
+
+  // 2. day with the biggest market-wide move
+  var f2 = dailyMoves(ROWS);
+  if (f2.length) {
+    var big = f2.slice().sort(function (a, c) { return (c.mean_abs_move_pct - a.mean_abs_move_pct) || cmp(a.date, c.date); })[0];
+    var calm = f2.slice().sort(function (a, c) { return (a.mean_abs_move_pct - c.mean_abs_move_pct) || cmp(a.date, c.date); })[0];
+    section("f2", "The biggest market-wide move came on " + big.date,
+      ["On " + b(big.date) + " the " + big.coins + " CoinGecko coins moved by an average of " + b(fmtPlainPct(big.mean_abs_move_pct)) +
+        " since the previous run on " + esc(big.previous_date) + " (" + big.up + " up, " + big.down + " down). The biggest single move that day was " +
+        b(big.top.item) + " at " + b(fmtPct(big.top.move_pct)) + " (" + fmtUSD(big.top.old) + " → " + fmtUSD(big.top.new) + ")." +
+        (f2.length > 1 ? " The calmest day was " + b(calm.date) + " at " + b(fmtPlainPct(calm.mean_abs_move_pct)) + "." : ""),
+       "<span class='muted'>How it is computed: for each date after the first, the move rule is applied to every CoinGecko coin — the percent change of price_usd since the previous date in the history — and the bar is the mean of the absolute moves.</span>"],
+      function (el) { columnChart(el, { label: "Mean absolute daily move", format: function (v) { return fmtPlainPct(v); },
+        items: f2.map(function (d) { return { label: d.date.slice(5), value: d.mean_abs_move_pct,
+          tip: "<div class='t-head'>" + d.date + "</div>Mean |move|: <b>" + fmtPlainPct(d.mean_abs_move_pct) + "</b><br>" + d.up + " up · " + d.down + " down<br>Top: " + esc(d.top.item) + " " + fmtPct(d.top.move_pct) }; }) }); },
+      ["Date", "Previous run", "Coins", "Mean |move|", "Up", "Down", "Biggest mover", "Its move"],
+      f2.map(function (d) { return [d.date, d.previous_date, d.coins, fmtPlainPct(d.mean_abs_move_pct, 3), d.up, d.down, d.top.item, fmtPct(d.top.move_pct)]; }));
+  } else {
+    section("f2", "The day with the biggest move needs a second day of history",
+      ["Each day's market-wide move is the mean absolute percent change of price_usd across the CoinGecko coins since the previous run. It appears after the second daily run."]);
+  }
+
+  // 3. how far apart the two sources are
+  var f3 = sourceGap(ROWS);
+  if (f3.pairs.length) {
+    var w = f3.pairs[0];
+    section("f3", "Kraken and CoinGecko prices are within " + fmtPlainPct(Math.abs(w.gap_pct)) + " of each other",
+      ["On " + b(f3.date) + ", " + f3.pairs.length + " coins were priced by both sources. Kraken's last trade differed from CoinGecko's price by " +
+        b(fmtPlainPct(f3.mean_abs_gap_pct, 3)) + " on average. The widest gap was " + b(w.item) + ": Kraken " + b(fmtUSD(w.kraken)) +
+        " vs CoinGecko " + b(fmtUSD(w.coingecko)) + " (" + b(fmtPct(w.gap_pct, 3)) + "). Part of the gap is timing: the two sources are called a few seconds apart and CoinGecko averages many exchanges.",
+       "<span class='muted'>How it is computed: on the latest date with both sources, for each symbol in both, gap = (Kraken price_usd − CoinGecko price_usd) ÷ CoinGecko price_usd × 100. The average is the mean of |gap|.</span>"],
+      function (el) { barChart(el, { label: "Kraken price vs CoinGecko price", format: function (v) { return fmtPct(v, 3); },
+        items: f3.pairs.map(function (p) { return { label: p.item, value: p.gap_pct,
+          tip: "<div class='t-head'>" + esc(p.item) + "</div>Kraken " + fmtUSD(p.kraken) + "<br>CoinGecko " + fmtUSD(p.coingecko) + "<br><b>" + fmtPct(p.gap_pct, 3) + "</b>" }; }) }); },
+      ["Coin", "Kraken", "CoinGecko", "Gap"],
+      f3.pairs.map(function (p) { return [p.item, fmtUSD(p.kraken), fmtUSD(p.coingecko), fmtPct(p.gap_pct, 4)]; }));
+  } else {
+    section("f3", "No day has prices from both sources yet", ["This section compares Kraken and CoinGecko prices once both sources report on the same day."]);
+  }
+
+  // 4. Bitcoin dominance
+  var f4 = btcDominance(ROWS);
+  if (f4.length) {
+    var a = f4[0], z = f4[f4.length - 1], diff = z.share_pct - a.share_pct;
+    section("f4", "Bitcoin holds " + fmtPlainPct(z.share_pct, 1) + " of the tracked market cap",
+      ["On " + b(z.date) + ", Bitcoin's market cap was " + b(fmtCompactUSD(z.btc)) + " out of " + b(fmtCompactUSD(z.total)) + " for the " + z.coins +
+        " tracked CoinGecko coins, a share of " + b(fmtPlainPct(z.share_pct)) + "." +
+        (f4.length > 1 ? " On the first day, " + esc(a.date) + ", it was " + b(fmtPlainPct(a.share_pct)) + ", so the share has " +
+          (diff >= 0 ? "risen" : "fallen") + " by " + b(Math.abs(diff).toFixed(2) + " percentage points") + "." : " The chart grows a point each day."),
+       "<span class='muted'>How it is computed: for each date, share = market_cap_usd of coingecko:btc ÷ the sum of market_cap_usd over all CoinGecko rows that date × 100. It is a share of the coins tracked here, not of the whole crypto market.</span>"],
+      function (el) { lineChart(el, { xs: f4.map(function (d) { return d.date; }), height: 240, label: "Bitcoin share of tracked market cap",
+        format: function (v) { return fmtPlainPct(v); },
+        series: [{ name: "Bitcoin share", color: seriesColor(0), points: f4.map(function (d) { return { x: d.date, y: d.share_pct }; }) }] }); },
+      ["Date", "Bitcoin market cap", "All tracked coins", "Coins", "Share"],
+      f4.map(function (d) { return [d.date, fmtCompactUSD(d.btc), fmtCompactUSD(d.total), d.coins, fmtPlainPct(d.share_pct, 3)]; }));
+  }
+
+  // 5. stablecoin peg
+  var f5 = stablecoinPeg(ROWS);
+  if (f5.rows.length) {
+    var ids = {}; f5.rows.forEach(function (r) { ids[r.item_id] = r.item; });
+    var idList = Object.keys(ids).sort();
+    section("f5", "Stablecoins stayed within " + fmtPlainPct(f5.worst.dev_pct, 2) + " of $1",
+      ["Across " + b(String(f5.rows.length)) + " stablecoin prices in the history (USDT and USDC, from both sources), the average distance from $1 was " +
+        b(fmtPlainPct(f5.mean_dev_pct, 3)) + ". The furthest was " + b(f5.worst.item) + " at " + b("$" + f5.worst.price.toFixed(6)) + " on " + esc(f5.worst.date) +
+        " (" + b(fmtPlainPct(f5.worst.dev_pct, 3)) + " away)" + (f5.worst.dev_pct <= 1 ? ", so both pegs held within 1%." : ", more than 1% off the peg."),
+       "<span class='muted'>How it is computed: for every history row whose symbol is USDT or USDC, distance = |price_usd − 1| × 100 percent. The chart shows each stablecoin's distance per day.</span>"],
+      function (el) {
+        var dates = uniqueDates(f5.rows);
+        lineChart(el, { xs: dates, height: 240, label: "Stablecoin distance from $1", format: function (v) { return fmtPlainPct(v, 3); },
+          series: idList.map(function (id, i) {
+            var by = {}; f5.rows.forEach(function (r) { if (r.item_id === id) by[r.date] = r.dev_pct; });
+            return { name: ids[id], color: seriesColor(i), points: dates.map(function (d) { return { x: d, y: by[d] === undefined ? null : by[d] }; }) };
+          }) });
+        var lg = document.createElement("div"); lg.className = "legend";
+        lg.innerHTML = idList.map(function (id, i) { return "<span><span class='sw' style='background:" + seriesColor(i) + "'></span>" + esc(ids[id]) + "</span>"; }).join("");
+        el.prepend(lg);
+      },
+      ["Date", "Item", "Price", "Distance from $1"],
+      f5.rows.map(function (r) { return [r.date, r.item, "$" + r.price.toFixed(6), fmtPlainPct(r.dev_pct, 4)]; }));
+  }
+}
+
+loadData().then(function (d) {
+  ROWS = d.rows; DATES = uniqueDates(ROWS);
+  document.getElementById("lead").textContent = "A report on the history so far: " + ROWS.length + " rows over " + DATES.length +
+    " day" + (DATES.length === 1 ? "" : "s") + " (" + DATES[0] + " to " + DATES[DATES.length - 1] + ").";
+  var seen = {};
+  ROWS.forEach(function (r) { seen[r.item_id] = { id: r.item_id, item: r.item, source: r.source }; });
+  ITEMS = Object.keys(seen).map(function (k) { return seen[k]; })
+    .sort(function (a, b) { return cmp(a.source, b.source) || cmp(a.item, b.item) || cmp(a.id, b.id); });
+  document.getElementById("metric").innerHTML = NUMERIC.map(function (c) {
+    return "<option value='" + c + "'>" + esc(COLUMN_LABELS[c]) + "</option>";
+  }).join("");
+  var html = "", last = "";
+  ITEMS.forEach(function (it) {
+    if (it.source !== last) { html += "<div class='group'>" + esc(it.source) + "</div>"; last = it.source; }
+    html += "<label><input type='checkbox' value='" + esc(it.id) + "'>" + esc(it.item) + "</label>";
+  });
+  document.getElementById("picker").innerHTML = html;
+  ["coingecko:btc", "coingecko:eth", "coingecko:sol", "coingecko:xrp"].forEach(function (id) { if (seen[id]) pick(id, true); });
+  document.getElementById("indexed").checked = true;
+  drawHistory();
+  findings();
+}).catch(showLoadError);
+
+document.getElementById("picker").addEventListener("change", function (e) {
+  if (e.target.matches("input[type=checkbox]")) { pick(e.target.value, e.target.checked); drawHistory(); }
+});
+document.getElementById("metric").addEventListener("change", drawHistory);
+document.getElementById("indexed").addEventListener("change", drawHistory);
+document.getElementById("clear").addEventListener("click", function () { picked = []; slotOf = {}; drawHistory(); });
+</script>
+</body>
+</html>

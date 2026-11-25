@@ -1,1 +1,135 @@
-<!doctype html><title>Crypto Tracker</title><p>Site coming soon.</p>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Today · Crypto Tracker</title>
+<meta name="description" content="Daily tracker of cryptocurrency prices, volumes and market caps from CoinGecko and Kraken.">
+<meta name="theme-color" content="#257de0">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="nav"><div class="nav-inner">
+  <a class="brand" href="./"><img src="icons/icon-192.png" alt="">Crypto Tracker</a>
+  <nav class="nav-links" aria-label="Pages">
+    <a href="./" aria-current="page">Today</a>
+    <a href="browse.html">Browse</a>
+    <a href="trends.html">Trends</a>
+  </nav>
+  <span class="nav-status"></span>
+</div></header>
+
+<main>
+  <div class="offline-note">You are offline. Showing the last data this device loaded.</div>
+  <h1>Today</h1>
+  <p class="sub" id="lead">Loading…</p>
+
+  <div class="tiles" id="tiles"></div>
+
+  <div class="grid-2">
+    <section class="card">
+      <h2>Sources</h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Source</th><th>Status</th><th class="num">Items</th></tr></thead>
+        <tbody id="sources"></tbody>
+      </table></div>
+      <p class="muted" id="changes-note" style="margin-bottom:0"></p>
+    </section>
+    <section class="card">
+      <h2 id="moves-title">Biggest moves since the previous run</h2>
+      <p class="muted" id="moves-rule" style="margin-top:0"></p>
+      <div id="moves-chart"></div>
+    </section>
+  </div>
+
+  <section class="card" style="margin-top:1.25rem">
+    <h2>Latest values</h2>
+    <p class="muted" id="latest-note" style="margin-top:0"></p>
+    <div class="table-wrap"><table>
+      <thead><tr>
+        <th>Item</th><th>Source</th><th class="num">Price</th><th class="num">Previous run</th>
+        <th class="num">Change since previous run</th><th class="num">24h change</th>
+        <th class="num">24h volume</th><th class="num">Market cap</th>
+      </tr></thead>
+      <tbody id="latest"></tbody>
+    </table></div>
+  </section>
+</main>
+<footer>Data: CoinGecko and Kraken public APIs, collected daily by GitHub Actions. Calculations run in your browser.</footer>
+
+<script src="analysis.js"></script>
+<script src="common.js"></script>
+<script>
+loadData().then(function (d) {
+  var rows = d.rows, status = d.status;
+  var dates = uniqueDates(rows), latest = dates[dates.length - 1];
+  var c = compare(rows, latest);
+
+  document.getElementById("lead").textContent = "Last run: " + fmtTime(status.run_time) +
+    (c.previous_date ? ". Changes are measured against the previous run on " + c.previous_date + "."
+                     : ". This is the first run, so there is no previous run to compare with yet.");
+
+  var tiles = [
+    ["Items in latest run", status.items],
+    ["Days with a successful run", status.days_with_success],
+    ["First run", status.first_run_date],
+    ["New today", status.new_today.length],
+    ["Gone today", status.gone_today.length],
+    ["Sources OK", status.sources.filter(function (s) { return s.ok; }).length + " of " + status.sources.length],
+  ];
+  document.getElementById("tiles").innerHTML = tiles.map(function (t) {
+    return "<div class='tile'><div class='label'>" + esc(t[0]) + "</div><div class='value'>" + esc(t[1]) + "</div></div>";
+  }).join("");
+
+  document.getElementById("sources").innerHTML = status.sources.map(function (s) {
+    return "<tr><td>" + esc(s.name) + "</td><td><span class='badge " + (s.ok ? "ok" : "fail") + "'>" +
+      (s.ok ? "OK" : "Failed") + "</span></td><td class='num'>" + s.count + "</td></tr>";
+  }).join("");
+
+  var names = {};
+  rows.forEach(function (r) { names[r.item_id] = r.item; });
+  var list = function (ids) { return ids.length ? ids.map(function (i) { return names[i] || i; }).join(", ") : "none"; };
+  document.getElementById("changes-note").textContent = c.previous_date
+    ? "Appeared since the previous run: " + list(status.new_today) + ". Disappeared: " + list(status.gone_today) + "."
+    : "First run: all " + status.new_today.length + " items are new.";
+
+  document.getElementById("moves-rule").textContent =
+    "The " + TOP_N + " items with the largest percent change in price since the previous run, by absolute size.";
+  var top = c.moves.slice(0, TOP_N);
+  if (top.length) {
+    barChart(document.getElementById("moves-chart"), {
+      label: "Biggest price moves since the previous run",
+      items: top.map(function (m) {
+        return { label: m.item.replace(/ \(Kraken .*\)/, " · Kraken"), value: m.move_pct,
+                 tip: "<div class='t-head'>" + esc(m.item) + "</div>" + fmtUSD(m.old) + " → " + fmtUSD(m.new) + "<br><b>" + fmtPct(m.move_pct) + "</b>" };
+      }),
+      format: function (v) { return fmtPct(v); },
+    });
+  } else {
+    document.getElementById("moves-chart").innerHTML = "<p class='empty'>No moves yet: moves need two runs. They appear after the next daily run.</p>";
+  }
+
+  var moveBy = {};
+  c.moves.forEach(function (m) { moveBy[m.item_id] = m; });
+  var today = rowsOn(rows, latest).slice().sort(function (a, b) {
+    return cmp(a.source, b.source) || ((a.market_cap_rank === null) - (b.market_cap_rank === null)) ||
+      ((a.market_cap_rank || 0) - (b.market_cap_rank || 0)) || cmp(a.item_id, b.item_id);
+  });
+  document.getElementById("latest-note").textContent = today.length + " items on " + latest + ".";
+  document.getElementById("latest").innerHTML = today.map(function (r) {
+    var m = moveBy[r.item_id], prev = c.before[r.item_id];
+    return "<tr><td>" + esc(r.item) + " <span class='tag'>" + esc(r.symbol) + "</span></td><td>" + esc(r.source) + "</td>" +
+      "<td class='num'>" + fmtUSD(r.price_usd) + "</td>" +
+      "<td class='num muted'>" + (prev ? fmtUSD(prev.price_usd) : "—") + "</td>" +
+      "<td class='num " + (m ? signClass(m.move_pct) : "") + "'>" + (m ? fmtPct(m.move_pct) : (c.previous_date && !prev ? "new" : "—")) + "</td>" +
+      "<td class='num " + signClass(r.change_24h_pct) + "'>" + fmtPct(r.change_24h_pct) + "</td>" +
+      "<td class='num'>" + fmtCompactUSD(r.volume_24h_usd) + "</td>" +
+      "<td class='num'>" + fmtCompactUSD(r.market_cap_usd) + "</td></tr>";
+  }).join("");
+}).catch(showLoadError);
+</script>
+</body>
+</html>
