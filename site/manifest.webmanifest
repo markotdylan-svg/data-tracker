@@ -1,0 +1,16 @@
+{
+  "name": "Crypto Tracker",
+  "short_name": "Crypto Tracker",
+  "description": "Daily prices, volumes and market caps of 23 cryptocurrencies from CoinGecko and Kraken.",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f9f9f9",
+  "theme_color": "#257de0",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
