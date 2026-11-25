@@ -1,0 +1,62 @@
+{
+  "run_time": "2026-11-25T21:50:07Z",
+  "first_run_date": "2026-11-25",
+  "days_with_success": 1,
+  "items": 41,
+  "new_today": [
+    "coingecko:aave",
+    "coingecko:ada",
+    "coingecko:atom",
+    "coingecko:avax",
+    "coingecko:bch",
+    "coingecko:bnb",
+    "coingecko:btc",
+    "coingecko:doge",
+    "coingecko:dot",
+    "coingecko:eth",
+    "coingecko:hbar",
+    "coingecko:link",
+    "coingecko:ltc",
+    "coingecko:near",
+    "coingecko:shib",
+    "coingecko:sol",
+    "coingecko:sui",
+    "coingecko:trx",
+    "coingecko:uni",
+    "coingecko:usdc",
+    "coingecko:usdt",
+    "coingecko:xlm",
+    "coingecko:xrp",
+    "kraken:aave",
+    "kraken:ada",
+    "kraken:atom",
+    "kraken:avax",
+    "kraken:bch",
+    "kraken:btc",
+    "kraken:doge",
+    "kraken:dot",
+    "kraken:eth",
+    "kraken:link",
+    "kraken:ltc",
+    "kraken:sol",
+    "kraken:trx",
+    "kraken:uni",
+    "kraken:usdc",
+    "kraken:usdt",
+    "kraken:xlm",
+    "kraken:xrp"
+  ],
+  "gone_today": [],
+  "sources": [
+    {
+      "name": "coingecko",
+      "ok": true,
+      "count": 23
+    },
+    {
+      "name": "kraken",
+      "ok": true,
+      "count": 18
+    }
+  ]
+}
