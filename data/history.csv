@@ -40,3 +40,44 @@ date,item_id,item,source,symbol,category,price_usd,change_24h_pct,high_24h_usd,l
 2026-11-25,kraken:usdt,Tether (Kraken USDT/USD),kraken,USDT,Stablecoin,0.99878,,0.9999,0.99585,457445810.04,,
 2026-11-25,kraken:xlm,Stellar (Kraken XLM/USD),kraken,XLM,Payments,0.127448,,0.128843,0.119587,2009686.34,,
 2026-11-25,kraken:xrp,XRP (Kraken XRP/USD),kraken,XRP,Payments,0.93896,,0.94782,0.88778,35004882.85,,
+2026-11-26,coingecko:aave,Aave,coingecko,AAVE,DeFi,94.66,-0.34098,97.47,92.54,227147632,1461289576,53
+2026-11-26,coingecko:ada,Cardano,coingecko,ADA,Smart contract platform,0.149377,2.57365,0.15114,0.144881,217048387,5614980002,18
+2026-11-26,coingecko:atom,Cosmos Hub,coingecko,ATOM,Smart contract platform,1.22,-1.00616,1.26,1.18,33924403,663265817,86
+2026-11-26,coingecko:avax,Avalanche,coingecko,AVAX,Smart contract platform,6.61,0.14592,6.72,6.48,114721944,2954092953,26
+2026-11-26,coingecko:bch,Bitcoin Cash,coingecko,BCH,Currency,210.12,3.12179,211.29,203.54,117620525,4227797707,22
+2026-11-26,coingecko:bnb,BNB,coingecko,BNB,Exchange token,554.65,0.52826,560.66,545.2,517349139,72940462986,4
+2026-11-26,coingecko:btc,Bitcoin,coingecko,BTC,Currency,60601,0.86678,61375,59894,23184175349,1219102351668,1
+2026-11-26,coingecko:doge,Dogecoin,coingecko,DOGE,Meme,0.056593,1.34014,0.057188,0.055691,322274719,8877629402,12
+2026-11-26,coingecko:dot,Polkadot,coingecko,DOT,Smart contract platform,0.67485,2.701,0.677762,0.654307,60940877,1156564308,63
+2026-11-26,coingecko:eth,Ethereum,coingecko,ETH,Smart contract platform,1696.4,0.67757,1721.37,1669.78,7585231326,207362832621,2
+2026-11-26,coingecko:hbar,Hedera,coingecko,HBAR,Smart contract platform,0.054247,4.53567,0.055251,0.051751,60261969,2404037904,34
+2026-11-26,coingecko:link,Chainlink,coingecko,LINK,DeFi,9.33,3.44953,9.41,8.99,232152739,7155633823,16
+2026-11-26,coingecko:ltc,Litecoin,coingecko,LTC,Currency,44.11,3.80313,44.17,42.34,195648452,3436192067,24
+2026-11-26,coingecko:near,NEAR Protocol,coingecko,NEAR,Smart contract platform,3.07,1.60993,3.12,2.97,575894750,4027771199,23
+2026-11-26,coingecko:shib,Shiba Inu,coingecko,SHIB,Meme,3.63e-06,1.5384,3.67e-06,3.56e-06,35157620,2140116419,39
+2026-11-26,coingecko:sol,Solana,coingecko,SOL,Smart contract platform,71.16,0.96109,71.74,69.93,1874255328,42130999047,7
+2026-11-26,coingecko:sui,Sui,coingecko,SUI,Smart contract platform,0.669798,0.92385,0.68159,0.650834,283733399,2771478232,32
+2026-11-26,coingecko:trx,TRON,coingecko,TRX,Smart contract platform,0.303978,0.2695,0.304708,0.301595,261844455,28894337195,9
+2026-11-26,coingecko:uni,Uniswap,coingecko,UNI,DeFi,4.67,-0.9397,4.83,4.55,250613929,2834321077,29
+2026-11-26,coingecko:usdc,USDC,coingecko,USDC,Stablecoin,0.999581,0.01275,0.999652,0.999392,8821728577,69232801040,5
+2026-11-26,coingecko:usdt,Tether,coingecko,USDT,Stablecoin,0.998995,0.00853,0.999139,0.998862,34833906930,173841180505,3
+2026-11-26,coingecko:xlm,Stellar,coingecko,XLM,Payments,0.127459,-0.16055,0.130296,0.125564,72370712,4524068364,20
+2026-11-26,coingecko:xrp,XRP,coingecko,XRP,Payments,0.948082,1.25962,0.962333,0.931798,1268338564,60193219914,6
+2026-11-26,kraken:aave,Aave (Kraken AAVE/USD),kraken,AAVE,DeFi,94.37,,97.64,92.22,1424332.93,,
+2026-11-26,kraken:ada,Cardano (Kraken ADA/USD),kraken,ADA,Smart contract platform,0.148589,,0.151264,0.144752,3640967.76,,
+2026-11-26,kraken:atom,Cosmos Hub (Kraken ATOM/USD),kraken,ATOM,Smart contract platform,1.2179,,1.2565,1.1744,410066.24,,
+2026-11-26,kraken:avax,Avalanche (Kraken AVAX/USD),kraken,AVAX,Smart contract platform,6.592,,6.742,6.476,1409448.1,,
+2026-11-26,kraken:bch,Bitcoin Cash (Kraken BCH/USD),kraken,BCH,Currency,210.06,,211.29,203.62,857518.24,,
+2026-11-26,kraken:btc,Bitcoin (Kraken BTC/USD),kraken,BTC,Currency,60428.3,,61533.1,59850,178820699.29,,
+2026-11-26,kraken:doge,Dogecoin (Kraken DOGE/USD),kraken,DOGE,Meme,0.0564331,,0.0572103,0.055666,1931610.25,,
+2026-11-26,kraken:dot,Polkadot (Kraken DOT/USD),kraken,DOT,Smart contract platform,0.6728,,0.6784,0.6537,381664.89,,
+2026-11-26,kraken:eth,Ethereum (Kraken ETH/USD),kraken,ETH,Smart contract platform,1691.27,,1728.63,1666.02,33426315.59,,
+2026-11-26,kraken:link,Chainlink (Kraken LINK/USD),kraken,LINK,DeFi,9.29289,,9.40994,8.98276,4142731.48,,
+2026-11-26,kraken:ltc,Litecoin (Kraken LTC/USD),kraken,LTC,Currency,43.93,,44.22,42.32,4274954.48,,
+2026-11-26,kraken:sol,Solana (Kraken SOL/USD),kraken,SOL,Smart contract platform,70.94,,71.81,69.72,13890973.41,,
+2026-11-26,kraken:trx,TRON (Kraken TRX/USD),kraken,TRX,Smart contract platform,0.303743,,0.304606,0.301413,1131154.33,,
+2026-11-26,kraken:uni,Uniswap (Kraken UNI/USD),kraken,UNI,DeFi,4.6463,,4.8464,4.5368,1604328.17,,
+2026-11-26,kraken:usdc,USDC (Kraken USDC/USD),kraken,USDC,Stablecoin,0.9999,,1,0.9998,39873761.14,,
+2026-11-26,kraken:usdt,Tether (Kraken USDT/USD),kraken,USDT,Stablecoin,0.99871,,0.99885,0.9986,120623219.93,,
+2026-11-26,kraken:xlm,Stellar (Kraken XLM/USD),kraken,XLM,Payments,0.127251,,0.130596,0.125178,948470.26,,
+2026-11-26,kraken:xrp,XRP (Kraken XRP/USD),kraken,XRP,Payments,0.94423,,0.96264,0.93111,18247414.97,,
